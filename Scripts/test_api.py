@@ -14,8 +14,30 @@ IAD_BOX = {
     "lamin": 38.7,
     "lamax": 39.3,
     "lomin": -77.8,
-    "lomax": -77.0,
+    "lomax": -77.2,
     }
+
+
+# Field names in index order (0 to 16), from the OpenSky docs.
+FIELD_NAMES = [
+    "icao24",          # 0
+    "callsign",        # 1
+    "origin_country",  # 2
+    "time_position",   # 3
+    "last_contact",    # 4
+    "longitude",       # 5
+    "latitude",        # 6
+    "baro_altitude",   # 7
+    "on_ground",       # 8
+    "velocity",        # 9
+    "true_track",      # 10
+    "vertical_rate",   # 11
+    "sensors",         # 12
+    "geo_altitude",    # 13
+    "squawk",          # 14
+    "spi",             # 15
+    "position_source", # 16
+]
 
 client_secret = os.getenv("OPENSKY_CLIENT_SECRET")
 client_id = os.getenv("OPENSKY_CLIENT_ID")
@@ -50,15 +72,36 @@ if token_response.status_code == 200:
     print("States status:", states_response.status_code)
 
     if states_response.status_code == 200:
-        data = states_response.json()
+        states = states_response.json()["states"]
 
-        # "states" is none when no aircraft are in box
-        states = data["states"]
+    
         if states is None:
             print("No aircraft found in the Dulles area.")
         else:
             print("Aircraft found:", len(states))
-            print("First state vector:", states[0])
+
+        first = dict(zip(FIELD_NAMES, states[0]))
+
+
+        if first["callsign"] is not None:
+            first["callsign"] = first["callsign"].strip()
+
+        print("First aircraft, labeled:")
+        for name, value in first.items():
+            print(f"{name}: {value}")
+
+        print("\nFirst five aircraft:")
+        for state in states[:5]:
+            aircraft = dict(zip(FIELD_NAMES, state))
+            callsign = aircraft["callsign"]
+            if callsign is not None:
+                callsign = callsign.strip()
+            print(
+                callsign,
+                aircraft["latitude"],
+                aircraft["longitude"],
+                "on_ground:", aircraft["on_ground"],
+            )
     else:
         print("States request failed:", states_response.text)
 else:
