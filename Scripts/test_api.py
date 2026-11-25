@@ -115,6 +115,37 @@ def main():
     print("Missing callsigns:", df["callsign"].isna().sum())
     print("On the ground:", df["on_ground"].sum())
 
+
+def explore(df):
+    airborne = df[~df["on_ground"]]
+    print(f"Airborne: {len(airborne)} | On the ground: {df['on_ground'].sum()}")
+    if airborne.empty:
+        print("Nothing airborne right now.")
+        return
+
+    print("Average altitude (ft):", round(airborne["altitude_ft"].mean()))
+
+    print()
+    print("Lowest airborne:")
+    print(airborne.nsmallest(3, "altitude_ft")[["callsign", "altitude_ft", "velocity_kts"]])
+
+    print()
+    print("Fastest:")
+    print(df.nlargest(3, "velocity_kts")[["callsign", "velocity_kts", "on_ground"]])
+
+    print()
+    print("Speed by ground status:")
+    print(df.groupby("on_ground")["velocity_kts"].agg(["count", "mean", "max"]).round(1))
+
+    print()
+    print("Missing callsigns:", df["callsign"].isna().sum())
+    print("Origin countries:")
+    print(df["origin_country"].value_counts().head())
+    explore(df)
+
+
+
 if __name__ == "__main__":
     main()
+
 
