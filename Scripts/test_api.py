@@ -1,5 +1,6 @@
 import os
 import requests
+import pandas as pd
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,7 +10,6 @@ STATES_URL = "https://opensky-network.org/api/states/all"
 
 
 #Approx box around Dulles (IAD)
-# lamin/lamax = latitude (N/S), lomin/lomax = longitude (E/W)
 IAD_BOX = {
     "lamin": 38.7,
     "lamax": 39.3,
@@ -39,71 +39,82 @@ FIELD_NAMES = [
     "position_source", # 16
 ]
 
-client_secret = os.getenv("OPENSKY_CLIENT_SECRET")
-client_id = os.getenv("OPENSKY_CLIENT_ID")
+METERS_TO_FEET = 3.28084
+MS_TO_KNOTS = 1.94384
+MS_TO_FEET_PER_MIN = 196.85
+
+# Show every column when printing a wide frame
+pd.set_option("display.max_columns", None)
+pd.set_option("display.width", 200)
+
+def get_token():
+    client_secret = os.getenv("OPENSKY_CLIENT_SECRET")
+    client_id = os.getenv("OPENSKY_CLIENT_ID")
+    if client_id is None or client_secret is None:
+        raise RuntimeError("Missing credentials. Check your .env file.")
+
+    payload = {
+        "grant_type": "client_credentials",
+        "client_id": client_id,
+        "client_secret": client_secret,
+    }
 
 
-# Body of the request
-payload = {
-    "grant_type": "client_credentials",
-    "client_id": client_id,
-    "client_secret": client_secret,
-}
+    response = requests.post(TOKEN_URL, data=payload, timeout=10)
+    if response.status_code != 200:
+        raise RuntimeError(f"Token request failed ({response.status_code}): {response.text}")
+    return response.json()["access_token"]
 
 
-# data= send the payload form-encoded
-# json= would send it as JSON, wrong format
-# timeout= stops the script from hanging indefinitely if server stalls or is unreachable
-token_response = requests.post(TOKEN_URL, data=payload, timeout=10)
 
-print("Token status:", token_response.status_code)
+def fetch_states(token, box):
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(STATES_URL, headers=headers, params=box, timeout=10)
+    if response.status_code != 200:
+        raise RuntimeError(f"States request failed ({response.status_code}): {response.text}")
+    return response.json()["states"] or []
 
-if token_response.status_code == 200:
-    # .json() turns response body into py dictionary
-    access_token = token_response.json()["access_token"]
+def clean_states(df):
+    df = df.copy()
 
-    #Send token in authorization header
-    headers = {"Authorization": f"Bearer {access_token}"}
+    df["callsign"] = df["callsign"].str.strip().replace("", pd.NA)
+    df = df.drop(columns=["sensors"])
 
-    # params= turns the dictionary into ?lamin=...&lomin=... on the URL
-    states_response = requests.get(
-        STATES_URL, headers=headers, params=IAD_BOX, timeout=10
+    df["altitude_ft"] = df["baro_altitude"] * METERS_TO_FEET
+    df["geo_altitude_ft"] = df["geo_altitude"] * METERS_TO_FEET
+    df["velocity_kts"] = df["velocity"] * MS_TO_KNOTS
+    df["vertical_rate_fpm"] = df["vertical_rate"] * MS_TO_FEET_PER_MIN
+
+    df["position_time"] = (
+        pd.to_datetime(df["time_position"], unit="s", utc=True)
+        .dt.tz_convert("America/New_York")
     )
-    print("States status:", states_response.status_code)
+    df["last_contact_time"] = (
+        pd.to_datetime(df["last_contact"], unit="s", utc=True)
+        .dt.tz_convert("America/New_York")
+    )
 
-    if states_response.status_code == 200:
-        states = states_response.json()["states"]
+    return df
 
-    
-        if states is None:
-            print("No aircraft found in the Dulles area.")
-        else:
-            print("Aircraft found:", len(states))
+def main():
+    pd.set_option("display.max_columns", None)
+    pd.set_option("display.width", 200)
 
-        first = dict(zip(FIELD_NAMES, states[0]))
+    token = get_token()
+    states = fetch_states(token, IAD_BOX)
 
+    if not states:
+        print("No aircraft in the box right now.")
+        return
 
-        if first["callsign"] is not None:
-            first["callsign"] = first["callsign"].strip()
+    raw = pd.DataFrame(states, columns=FIELD_NAMES)
+    df = clean_states(raw)
 
-        print("First aircraft, labeled:")
-        for name, value in first.items():
-            print(f"{name}: {value}")
+    print("Aircraft found:", len(df))
+    print(df[["callsign", "latitude", "longitude", "altitude_ft", "velocity_kts", "on_ground"]].head())
+    print("Missing callsigns:", df["callsign"].isna().sum())
+    print("On the ground:", df["on_ground"].sum())
 
-        print("\nFirst five aircraft:")
-        for state in states[:5]:
-            aircraft = dict(zip(FIELD_NAMES, state))
-            callsign = aircraft["callsign"]
-            if callsign is not None:
-                callsign = callsign.strip()
-            print(
-                callsign,
-                aircraft["latitude"],
-                aircraft["longitude"],
-                "on_ground:", aircraft["on_ground"],
-            )
-    else:
-        print("States request failed:", states_response.text)
-else:
-    print("Token request failed:", token_response.text)
-    
+if __name__ == "__main__":
+    main()
+
