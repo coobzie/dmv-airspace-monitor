@@ -249,3 +249,8 @@ Fields needed for Squawk alerts:
 
 Field for on runway or in air:
 8 - on_ground
+
+
+IAD box needed to be cut short to the east as it may overlap with DCA.
+
+Airport label is airport closest to, not necessarily flying to.
