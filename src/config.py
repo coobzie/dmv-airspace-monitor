@@ -35,3 +35,6 @@ def make_box(lat, lon, radius=BOX_RADIUS_DEG):
         "lomin": round(lon - radius, 4),
         "lomax": round(lon + radius, 4),
     }
+
+
+REFRESH_SECONDS = 120

@@ -1,17 +1,15 @@
 import pandas as pd
 
-from .api import get_token, fetch_states
+from .api import fetch_states
 from .config import AIRPORTS, make_box
 from .processing import build_aircraft_table
 
 
 def get_aircraft():
-    """Fetch live aircraft around all configured airports as one clean table."""
-    token = get_token()
     all_states = []
     for info in AIRPORTS.values():
         box = make_box(info["lat"], info["lon"])
-        all_states.extend(fetch_states(token, box))
+        all_states.extend(fetch_states(box))
     return build_aircraft_table(all_states)
 
 
