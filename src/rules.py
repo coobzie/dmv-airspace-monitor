@@ -83,7 +83,7 @@ RULES = [
     {
         "name": "stale_contact",
         "severity": "low",
-        "description": f"No message received from the aircraft for over {STALE_CONTACT_SECONDS} seconds.",
+        "description": f"No message received from the aircraft for over {STABLE_CONTACT_SECONDS} seconds.",
         "limitation": "Usually a coverage gap or a receiver delay, not anything the aircraft did.",
         "check": _stale_contact,
         "detail": _detail_stale,
