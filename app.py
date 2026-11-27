@@ -3,25 +3,35 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
+import logging
 
 from src.api import OpenSkyError
 from src.config import AIRPORTS, REFRESH_SECONDS
 from src.pipeline import get_aircraft
 from src.rules import RULES, run_rules
+from src import storage
 
 TIMEZONE = ZoneInfo("America/New_York")
 COLOR_AIRBORNE = "#1f77b4"
 COLOR_GROUND = "#868e96"
 COLOR_ALERT = "#e03131"
 
+logger = logging.getLogger(__name__)
+
 st.set_page_config(page_title="DMV Airspace Monitor", page_icon="✈️", layout="wide")
 
 
 @st.cache_data(ttl=REFRESH_SECONDS, show_spinner="Fetching live aircraft...")
 def load_data():
-    """Fetch one snapshot. Cached, so every viewer shares it."""
+    """Fetch, flag and record one snapshot. Cached, so every viewer shares it."""
     df = get_aircraft()
-    return df, run_rules(df), datetime.now(TIMEZONE)
+    alerts = run_rules(df)
+    if not df.empty:
+        try:
+            storage.save_snapshot(df, alerts)
+        except Exception:  # history is a bonus; it must never break the live view
+            logger.exception("Could not save snapshot")
+    return df, alerts, datetime.now(TIMEZONE)
 
 def safe_name(row):
     name = row["Callsign"] if pd.notna(row["Callsign"]) else row["ICAO24"]
