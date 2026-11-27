@@ -38,3 +38,13 @@ def make_box(lat, lon, radius=BOX_RADIUS_DEG):
 
 
 REFRESH_SECONDS = 120
+
+EMERGENCY_SQUAWKS = {
+    "7500": "Hijacking",
+    "7600": "Radio failure",
+    "7700": "General emergency",
+}
+SLOW_LOW_MAX_KTS = 80
+SLOW_LOW_MAX_FT = 2000
+STABLE_CONTACT_SECONDS = 120
+
