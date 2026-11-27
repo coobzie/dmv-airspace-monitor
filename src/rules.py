@@ -7,7 +7,7 @@ from .config import (
 )
 
 ALERT_COLUMNS = [
-    "Severity", "Rule", "ICAO24", "Callsign", "Airport", "Latitude", "Longitude", "Detail",
+    "Severity", "Rule", "icao24", "Callsign", "Airport", "Latitude", "Longitude", "Detail",
 ]
 SEVERITY_ORDER = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
 
@@ -115,5 +115,5 @@ def run_rules(df, now=None):
             )
 
     out = pd.DataFrame(alerts, columns=ALERT_COLUMNS)
-    out = out.sort_values("severity", key=lambda s: s.map(SEVERITY_ORDER), kind="stable")
+    out = out.sort_values("Severity", key=lambda s: s.map(SEVERITY_ORDER), kind="stable")
     return out.reset_index(drop=True)
