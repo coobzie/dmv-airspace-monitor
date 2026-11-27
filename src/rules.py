@@ -31,7 +31,7 @@ def _airborne_no_callsign(df, now):
 
 
 def _stale_contact(df, now):
-    return (now - df["last_contact"]) > STALE_CONTACT_SECONDS
+    return (now - df["last_contact"]) > STABLE_CONTACT_SECONDS
 
 
 # --- Detail text: one human-readable line per alert ---
