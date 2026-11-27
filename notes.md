@@ -254,3 +254,8 @@ Field for on runway or in air:
 IAD box needed to be cut short to the east as it may overlap with DCA.
 
 Airport label is airport closest to, not necessarily flying to.
+
+Squawk codes:
+7500 - Hijacking
+7600 - Radio failure
+7700 - General Emergency
