@@ -98,7 +98,7 @@ for col, code in zip(cols[1:], AIRPORTS):
     col.metric(code, len(subset), help=f"{int((~subset['on_ground']).sum())} airborne")
 
 #Tabs
-tab_map, tab_aircraft, tab_alerts = st.tabs(["Live map", "Aircraft", "Alerts"])
+tab_map, tab_aircraft, tab_alerts, tab_trends = st.tabs(["Live map", "Aircraft", "Alerts", "Trends"])
 
 with tab_map:
     if view.empty:
@@ -132,3 +132,18 @@ with tab_alerts:
             st.write(rule["description"])
             st.caption(f"Where it can be wrong: {rule['limitation']}")
 
+with tab_trends:
+    counts = storage.load_hourly_counts()
+    if counts.empty:
+        st.info("History builds up while the dashboard or the collector is running.")
+    else:
+        st.subheader("Average aircraft per airport, by hour")
+        st.line_chart(counts)
+        alert_counts = storage.load_alert_counts()
+        if not alert_counts.empty:
+            st.subheader("Alerts per hour, by rule")
+            st.bar_chart(alert_counts)
+    recent = storage.load_recent_alerts()
+    if not recent.empty:
+        st.subheader("Recent alerts")
+        st.dataframe(recent, hide_index=True)
